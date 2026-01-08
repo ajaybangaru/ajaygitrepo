@@ -1,0 +1,44 @@
+# start all containers
+docker compose up -d
+
+# create kafka queue
+docker exec -it kafka kafka-topics   --create --topic events-topic   --bootstrap-server kafka:9092   --replication-factor 1   --partitions 1
+
+# create config folder inside the pinot-controller container
+docker exec -it pinot-controller mkdir -p /config
+
+# copying the schema and table to the controller
+docker cp events.schema.json pinot-controller:/config/
+docker cp events.table.json pinot-controller:/config/
+
+# Add table to the controller
+docker exec -it pinot-controller   /opt/pinot/bin/pinot-admin.sh AddTable   -tableConfigFile /config/events.table.json   -schemaFile /config/events.schema.json   -exec
+
+# run KafkaProducer.py
+python3 KafkaProducer.py
+
+# SQL Commands
+
+-- LINE GRAPH QUERIES
+-- Get latest events (use double quotes for timestamp)
+SELECT * FROM events ORDER BY "timestamp" DESC LIMIT 10
+
+-- BAR GRAPH QUERIES
+-- Group by event type
+SELECT eventType, COUNT(*) as count FROM events GROUP BY eventType
+
+-- Group by user
+SELECT userId, COUNT(*) as count FROM events GROUP BY userId
+
+-- Average value per event type
+SELECT eventType, AVG(value) as avg_value FROM events GROUP BY eventType
+
+-- NORMAL QUERIES
+-- Count all events
+SELECT COUNT(*) FROM events
+
+-- Get specific columns
+SELECT userId, eventType, value FROM events LIMIT 10
+
+-- Filter by event type
+SELECT * FROM events WHERE eventType = 'click' LIMIT 10

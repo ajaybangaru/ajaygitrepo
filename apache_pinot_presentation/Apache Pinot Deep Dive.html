@@ -1,0 +1,750 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Apache Pinot: Real-Time Analytics at Scale</title>
+  <style>
+    /* Theme Variables */
+    :root {
+      --font-family-display: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      --font-weight-display: 800;
+      --font-family-content: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      --font-weight-content: 400;
+      --font-size-content: 22px;
+      --line-height-content: 1.5;
+      
+      /* Professional Dark Theme */
+      --color-bg-base: #0f172a;
+      --color-bg-elevated: #020617;
+      --color-bg-surface: #1e293b;
+      --color-bg-muted: #334155;
+      --color-text-primary: #f1f5f9;
+      --color-text-secondary: #cbd5e1;
+      --color-text-muted: #94a3b8;
+      --color-text-accent: #38bdf8;
+      --color-primary: #38bdf8;
+      --color-primary-dark: #0ea5e9;
+      --color-success: #10b981;
+      --color-warning: #f59e0b;
+      --color-danger: #ef4444;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      background-color: #020617;
+      color: var(--color-text-primary);
+      font-family: var(--font-family-content);
+      font-weight: var(--font-weight-content);
+      font-size: var(--font-size-content);
+      line-height: var(--line-height-content);
+      overflow: hidden;
+      margin: 0;
+      padding: 0;
+      cursor: pointer;
+    }
+
+    .slide {
+      width: 100vw;
+      height: 100vh;
+      display: none !important;
+      flex-direction: column;
+      position: absolute;
+      top: 0;
+      left: 0;
+      overflow: hidden;
+      background-color: var(--color-bg-base);
+      border: none;
+      box-shadow: none;
+      border-radius: 0;
+      transition: opacity 0.5s ease-in-out;
+    }
+
+    .slide.active {
+      display: flex !important;
+      z-index: 10;
+      animation: slideIn 0.5s ease-out;
+    }
+
+    /* Layout Utilities */
+    .row { display: flex; flex-direction: row; }
+    .col { display: flex; flex-direction: column; }
+    .center { justify-content: center; align-items: center; text-align: center; }
+    .space-between { justify-content: space-between; }
+    .items-center { align-items: center; }
+    .fill-height { flex: 1; }
+    .fill-width { width: 100%; }
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 3rem; }
+
+    /* Spacing */
+    .p-16 { padding: 5rem; }
+    .p-12 { padding: 4rem; }
+    .p-10 { padding: 3rem; }
+    .p-8 { padding: 2.5rem; }
+    .p-6 { padding: 2rem; }
+    .mb-2 { margin-bottom: 0.5rem; }
+    .mb-4 { margin-bottom: 1rem; }
+    .mb-8 { margin-bottom: 2.5rem; }
+    .mt-2 { margin-top: 0.5rem; }
+    .mt-4 { margin-top: 1rem; }
+    .mt-8 { margin-top: 2.5rem; }
+
+    /* Typography */
+    h1, h2, h3, h4 {
+      font-family: var(--font-family-display);
+      font-weight: var(--font-weight-display);
+      line-height: 1.1;
+      margin-bottom: 1.5rem;
+    }
+
+    h1 { font-size: 5rem; letter-spacing: -0.03em; }
+    h2 { font-size: 3.5rem; color: var(--color-primary); letter-spacing: -0.02em; }
+    h3 { font-size: 2.25rem; color: var(--color-text-secondary); }
+    h4 { font-size: 1.75rem; color: var(--color-text-primary); }
+
+    .text-accent { color: var(--color-primary); }
+    .text-muted { color: var(--color-text-muted); }
+    .text-sm { font-size: 1rem; }
+    .text-xs { font-size: 0.85rem; }
+    .text-lg { font-size: 1.5rem; }
+    .text-xl { font-size: 2rem; }
+    .text-gradient {
+      background: linear-gradient(to right, #38bdf8, #10b981);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    /* Components */
+    .badge {
+      display: inline-block;
+      padding: 0.5rem 1rem;
+      border-radius: 9999px;
+      background: rgba(56, 189, 248, 0.15);
+      color: var(--color-primary);
+      font-weight: 700;
+      font-size: 0.9rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      margin-bottom: 2rem;
+    }
+
+    ul { list-style: none; }
+    li { position: relative; padding-left: 2rem; margin-bottom: 1.5rem; font-size: 1.25rem; }
+    li::before {
+      content: "→";
+      position: absolute;
+      left: 0;
+      color: var(--color-primary);
+      font-weight: 900;
+    }
+
+    .card {
+      background: rgba(30, 41, 59, 0.7);
+      backdrop-filter: blur(12px);
+      padding: 2.5rem;
+      border-radius: 16px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      box-shadow: 0 20px 50px -12px rgba(0, 0, 0, 0.5);
+    }
+
+    .code-block {
+      background: rgba(0, 0, 0, 0.8);
+      backdrop-filter: blur(8px);
+      padding: 1.5rem;
+      border-radius: 12px;
+      font-family: 'JetBrains Mono', 'Fira Code', 'Courier New', Courier, monospace;
+      font-size: 0.85rem;
+      color: #10b981;
+      overflow-x: auto;
+      border-left: 6px solid var(--color-primary);
+      line-height: 1.4;
+    }
+
+    .progress-container {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      height: 6px;
+      background: rgba(255, 255, 255, 0.05);
+      z-index: 100;
+    }
+
+    .progress-bar {
+      height: 100%;
+      background: linear-gradient(to right, var(--color-primary), var(--color-success));
+      width: 0%;
+      transition: width 0.3s ease-out;
+    }
+
+    .highlight-box {
+      border-left: 6px solid var(--color-primary);
+      padding-left: 2rem;
+      margin: 2rem 0;
+    }
+
+    .stat-val { font-size: 4.5rem; font-weight: 800; color: var(--color-primary); line-height: 1; }
+    .stat-label { font-size: 1rem; color: var(--color-text-muted); text-transform: uppercase; letter-spacing: 0.1em; }
+
+    .pill {
+      display: inline-block;
+      padding: 0.75rem 1.5rem;
+      background: var(--color-bg-muted);
+      border-radius: 999px;
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: var(--color-text-primary);
+      margin-right: 0.75rem;
+      margin-bottom: 0.75rem;
+      transition: transform 0.2s;
+    }
+    .pill:hover { transform: scale(1.05); }
+
+    /* Animations */
+    /* @keyframes slideIn {
+      from { transform: translateX(30px); opacity: 0; }
+      to { transform: translateX(0); opacity: 1; }
+    } */
+
+    /* @keyframes fadeInUp {
+      from { opacity: 0; transform: translateY(30px); }
+      to { opacity: 1; transform: translateY(0); }
+    } */
+
+    .slide.active > * {
+      animation: fadeInUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    /* Stagger children entries */
+    .slide.active > *:nth-child(1) { animation-delay: 0.1s; }
+    .slide.active > *:nth-child(2) { animation-delay: 0.2s; }
+    .slide.active > *:nth-child(3) { animation-delay: 0.3s; }
+    .slide.active > *:nth-child(4) { animation-delay: 0.4s; }
+    .slide.active > *:nth-child(5) { animation-delay: 0.5s; }
+  </style>
+</head>
+<body class="theme-dark">
+
+  <!-- SLIDE 1: Title Slide -->
+  <section class="slide p-12 col center" style="background: radial-gradient(circle at center, #1e293b 0%, #020617 100%);">
+    <div class="badge">Enterprise Real-Time Analytics</div>
+    <h1 class="text-gradient">Apache Pinot</h1>
+    <h3 class="mb-8">Sub-second Analytics at Petabyte Scale</h3>
+    <div style="height: 2px; width: 120px; background: linear-gradient(to right, #38bdf8, #10b981); margin-bottom: 2rem;"></div>
+    <p class="text-xl text-muted">A Technical Deep-Dive: From POC to Production</p>
+  </section>
+
+  <!-- SLIDE 2: The "5-Minute" Problem -->
+  <section class="slide p-12 col">
+    <div class="badge">The Context</div>
+    <h2>The "5-Minute" Insight Gap</h2>
+    <div class="grid-2 mt-4">
+      <div>
+        <p class="text-lg mb-6">Imagine it's <span class="text-accent">Black Friday</span>. Thousands of users are flooding your platform.</p>
+        <div class="highlight-box">
+          <p class="text-xl">Your data is <span class="text-danger">5 minutes old</span>.</p>
+        </div>
+        <ul>
+          <li>Users clicked 5 minutes ago.</li>
+          <li>Fraud happened 5 minutes ago.</li>
+          <li>Inventory ran out 5 minutes ago.</li>
+        </ul>
+      </div>
+      <div class="card center">
+        <p class="text-muted mb-4">The Result:</p>
+        <p class="text-xl font-bold mb-2">Decision Paralysis</p>
+        <p class="text-sm text-muted">Reacting to the past instead of optimizing the present.</p>
+        <div class="mt-8 stat-val" style="color: var(--color-danger);">-$k/min</div>
+        <p class="stat-label">Lost Opportunity Cost</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- SLIDE 3: Why Traditional Databases Fail -->
+  <section class="slide p-12 col">
+    <div class="badge">The Challenge</div>
+    <h2>Why Traditional DBs Fail</h2>
+    <p class="text-muted mb-4">It's not about hardware; it's about <span class="text-accent">Architecture</span>.</p>
+    <div class="grid-2">
+      <div class="card">
+        <h4 class="text-accent mb-4">Transactional Focus</h4>
+        <p class="text-sm">Optimized for <strong>ACID</strong> consistency. INSERT, UPDATE, DELETE take precedence over read speed.</p>
+      </div>
+      <div class="card">
+        <h4 class="text-accent mb-4">Row-Based Storage</h4>
+        <p class="text-sm">Reads the entire row (all columns) just to access one. Massive, unnecessary disk I/O.</p>
+      </div>
+      <div class="card">
+        <h4 class="text-accent mb-4">Limited Parallelism</h4>
+        <p class="text-sm">Single-node bottlenecks. Scaling up is expensive; scaling out is complex for analytics.</p>
+      </div>
+      <div class="card" style="border-color: var(--color-danger);">
+        <h4 style="color: var(--color-danger);" class="mb-4">The "ETL" Tax</h4>
+        <p class="text-sm">Data must be moved to a warehouse. This adds <strong>latency</strong> (minutes to hours).</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- SLIDE 4: Three Pillars of Pinot -->
+  <section class="slide p-10 col">
+    <div class="badge">The Architecture</div>
+    <h2 class="mb-4">The Three Pillars of Pinot</h2>
+    <div class="col gap-lg">
+      <div class="row items-center gap-lg mb-4">
+        <div style="width: 250px;"><span class="pill" style="background: var(--color-primary); color: #000; width: 100%; text-align: center;">1. Columnar Storage</span></div>
+        <p class="text-sm fill-height">Store by column, not row. Read only what you need. <span class="text-accent">90% less disk I/O</span> for analytical queries.</p>
+      </div>
+      <div class="row items-center gap-lg mb-4">
+        <div style="width: 250px;"><span class="pill" style="background: var(--color-primary); color: #000; width: 100%; text-align: center;">2. Distributed Design</span></div>
+        <p class="text-sm fill-height">Horizontal scale. Data is partitioned across servers. <span class="text-accent">Parallel query execution</span> on every segment.</p>
+      </div>
+      <div class="row items-center gap-lg">
+        <div style="width: 250px;"><span class="pill" style="background: var(--color-primary); color: #000; width: 100%; text-align: center;">3. Advanced Indexing</span></div>
+        <div class="fill-height">
+          <p class="text-sm mb-2">Inverted, Sorted, and Range indexes. Know what to read <em>before</em> touching the disk.</p>
+          <div class="row">
+            <span class="text-sm text-muted mr-4">✓ Star-Tree</span>
+            <span class="text-sm text-muted mr-4">✓ Bloom Filters</span>
+            <span class="text-sm text-muted">✓ JSON Indexes</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="mt-8 p-4 center" style="background: rgba(16, 185, 129, 0.1); border-radius: 8px; border: 1px dashed var(--color-success);">
+       <p class="text-sm text-success font-bold">Proven at LinkedIn, Uber, and Walmart at Petabyte Scale</p>
+    </div>
+  </section>
+
+  <!-- SLIDE 5: The Data Pipeline -->
+  <section class="slide p-10 col">
+    <div class="badge">The Implementation</div>
+    <h2>The Real-Time Pipeline</h2>
+    <div class="center mt-2">
+      <div class="row items-center space-between p-6 card fill-width">
+        <div class="col center">
+          <div class="pill" style="background: #374151;">Python Producer</div>
+          <p class="text-xs text-muted">User Events</p>
+        </div>
+        <div class="text-accent">→</div>
+        <div class="col center">
+          <div class="pill" style="background: #1e3a8a;">Apache Kafka</div>
+          <p class="text-xs text-muted">Durable Stream</p>
+        </div>
+        <div class="text-accent">→</div>
+        <div class="col center">
+          <div class="pill" style="background: #064e3b;">Pinot Server</div>
+          <p class="text-xs text-muted">Ingestion & Indexing</p>
+        </div>
+        <div class="text-accent">→</div>
+        <div class="col center">
+          <div class="pill" style="background: var(--color-primary); color: #000;">User Query</div>
+          <p class="text-xs text-muted">&lt; 100ms Result</p>
+        </div>
+      </div>
+    </div>
+    <div class="grid-2 mt-8">
+      <div>
+        <h4 class="text-sm uppercase text-muted mb-4">Ingestion Logic</h4>
+        <ul class="text-sm">
+          <li><strong>Micro-batching:</strong> Server pulls from Kafka every few seconds.</li>
+          <li><strong>Segment Creation:</strong> Events are batched into immutable segments.</li>
+          <li><strong>Real-time Search:</strong> Data is queryable while being indexed.</li>
+        </ul>
+      </div>
+      <div>
+        <h4 class="text-sm uppercase text-muted mb-4">Cluster Components</h4>
+        <p class="text-xs mb-2"><strong>Zookeeper:</strong> Coordination & Metadata</p>
+        <p class="text-xs mb-2"><strong>Controller:</strong> The Brain (Schemas/Tables)</p>
+        <p class="text-xs mb-2"><strong>Broker:</strong> Query Gateway (Scatter-Gather)</p>
+        <p class="text-xs"><strong>Server:</strong> Data Storage & Execution</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- SLIDE 6: Schema Design -->
+  <section class="slide p-10 col">
+    <div class="badge">Technical Detail</div>
+    <h2>Optimized Schema Design</h2>
+    <div class="grid-2 mt-2 fill-height">
+      <div class="col">
+        <p class="text-sm mb-4">Pinot categorizes fields to optimize storage and query speed:</p>
+        <div class="card mb-4">
+          <h5 class="text-accent text-sm">Dimension Fields</h5>
+          <p class="text-xs text-muted">Used for filtering and grouping (e.g., <code>userId</code>, <code>eventType</code>).</p>
+        </div>
+        <div class="card mb-4">
+          <h5 class="text-accent text-sm">Metric Fields</h5>
+          <p class="text-xs text-muted">Used for aggregations (e.g., <code>value</code>, <code>price</code>).</p>
+        </div>
+        <div class="card">
+          <h5 class="text-accent text-sm">DateTime Fields</h5>
+          <p class="text-xs text-muted">Used for time-based pruning (e.g., <code>timestamp</code>).</p>
+        </div>
+      </div>
+      <div class="code-block" style="font-size: 0.75rem;">
+<pre>{
+  "dimensionFieldSpecs": [
+    { "name": "userId", "dataType": "STRING" },
+    { "name": "eventType", "dataType": "STRING" }
+  ],
+  "metricFieldSpecs": [
+    { "name": "value", "dataType": "INT" }
+  ],
+  "dateTimeFieldSpecs": [
+    { 
+      "name": "timestamp", 
+      "dataType": "LONG", 
+      "format": "1:MILLISECONDS:EPOCH" 
+    }
+  ]
+}</pre>
+      </div>
+    </div>
+  </section>
+
+  <!-- SLIDE 7: Table Configuration -->
+  <section class="slide p-10 col">
+    <div class="badge">Technical Detail</div>
+    <h2>Table Configuration: The "Glue"</h2>
+    <div class="grid-2 mt-2 fill-height">
+      <div class="code-block" style="font-size: 0.7rem;">
+<pre>{
+  "tableName": "events",
+  "tableType": "REALTIME",
+  "segmentsConfig": {
+    "timeColumnName": "timestamp",
+    "retentionTimeValue": "7",
+    "retentionTimeUnit": "DAYS"
+  },
+  "tableIndexConfig": {
+    "streamConfigs": {
+      "streamType": "kafka",
+      "stream.kafka.topic.name": "events",
+      "stream.kafka.broker.list": "kafka:9092",
+      "stream.kafka.consumer.type": "lowlevel"
+    }
+  }
+}</pre>
+      </div>
+      <div class="col">
+        <h4 class="text-sm uppercase text-muted mb-4">Key Parameters</h4>
+        <div class="highlight-box">
+          <p class="text-sm font-bold">REALTIME Type</p>
+          <p class="text-xs text-muted">Enables continuous ingestion from streaming sources like Kafka.</p>
+        </div>
+        <div class="highlight-box" style="border-color: var(--color-warning);">
+          <p class="text-sm font-bold">Retention: 7 Days</p>
+          <p class="text-xs text-muted">Auto-purges data older than 7 days to manage storage costs.</p>
+        </div>
+        <div class="highlight-box" style="border-color: var(--color-success);">
+          <p class="text-sm font-bold">Low-Level Consumer</p>
+          <p class="text-xs text-muted">Directly maps Kafka partitions to Pinot segments for maximum parallelism.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SLIDE 8: The Segment Lifecycle -->
+  <section class="slide p-10 col">
+    <div class="badge">Operations</div>
+    <h2>The Segment Lifecycle</h2>
+    <div class="grid-2 mt-4">
+      <div class="col gap-md">
+        <div class="row items-center">
+          <div class="stat-val mr-4" style="font-size: 2rem;">168</div>
+          <p class="text-sm text-muted">Total Segments<br>(7 days × 24 hours)</p>
+        </div>
+        <p class="text-sm mt-4">Segments are the fundamental unit of scalability in Pinot.</p>
+        <ul class="text-sm">
+          <li><strong>Mutable:</strong> Recent data stays in memory (Consuming).</li>
+          <li><strong>Immutable:</strong> Once full, segments are flushed to deep store.</li>
+          <li><strong>Parallel:</strong> Every segment is a separate columnar database.</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h4 class="text-sm text-accent mb-4">Production Strategy: Hybrid Tables</h4>
+        <p class="text-xs mb-4">Seamlessly combine real-time and historical data:</p>
+        <div class="p-3 bg-black rounded mb-2 text-xs">
+          <span class="text-success">REALTIME Table</span> (Last 7 Days)
+        </div>
+        <div class="center text-xs text-muted">+</div>
+        <div class="p-3 bg-black rounded mt-2 text-xs">
+          <span class="text-primary">OFFLINE Table</span> (Historical S3/HDFS)
+        </div>
+        <p class="text-xs mt-4 text-center italic">"Query once, Pinot routes to both."</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- SLIDE 9: SQL Queries (Part 1) -->
+  <section class="slide p-10 col">
+    <div class="badge">Live Analytics</div>
+    <h2>Querying the Stream</h2>
+    <div class="grid-2 mt-2 fill-height">
+      <div class="col">
+        <h4 class="text-sm text-accent mb-2">1. Real-Time Distribution</h4>
+        <p class="text-xs text-muted mb-2">How many events occurred per type in the last hour?</p>
+        <div class="code-block" style="font-size: 0.7rem;">
+<pre>SELECT 
+  eventType, COUNT(*)
+FROM events
+WHERE timestamp > now() - 3600000
+GROUP BY eventType
+ORDER BY COUNT(*) DESC</pre>
+        </div>
+        <div class="highlight-box mt-2" style="border-color: var(--color-success);">
+          <p class="text-xs"><strong class="text-success">Pinot Optimization:</strong> Uses the timestamp index to prune segments, then uses the dictionary-encoded <code>eventType</code> for instant grouping.</p>
+        </div>
+      </div>
+      <div class="col">
+        <h4 class="text-sm text-accent mb-2">2. User-Centric Metrics</h4>
+        <p class="text-xs text-muted mb-2">What is the engagement level for active users?</p>
+        <div class="code-block" style="font-size: 0.7rem;">
+<pre>SELECT 
+  userId, AVG(value), COUNT(*)
+FROM events
+WHERE eventType = 'click'
+GROUP BY userId
+HAVING COUNT(*) > 10</pre>
+        </div>
+        <div class="highlight-box mt-2" style="border-color: var(--color-success);">
+          <p class="text-xs"><strong class="text-success">Pinot Optimization:</strong> Columnar storage reads only <code>userId</code> and <code>value</code>. Inverted index on <code>eventType</code> skips non-click rows entirely.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SLIDE 10: SQL Queries (Part 2) -->
+  <section class="slide p-8 col">
+    <div class="badge">Live Analytics</div>
+    <h2>Advanced Time-Series</h2>
+    <div class="col mt-2">
+      <h4 class="text-sm text-accent mb-2">Dynamic Time-Bucketing</h4>
+      <p class="text-xs text-muted mb-4">Hourly aggregation for trend analysis (Dashboard ready):</p>
+      <div class="code-block" style="font-size: 0.75rem;">
+<pre>SELECT 
+  FROM_UNIXTIME(CAST(timestamp / 1000 AS BIGINT), 'yyyy-MM-dd HH:00:00') as hour_bucket,
+  eventType,
+  COUNT(*) as event_count,
+  AVG(value) as avg_value
+FROM events
+WHERE timestamp > now() - 86400000
+GROUP BY hour_bucket, eventType
+ORDER BY hour_bucket DESC</pre>
+      </div>
+      <div class="row mt-4 gap-lg">
+        <div class="card fill-width">
+          <p class="text-xs font-bold text-accent mb-2">Key Technique</p>
+          <p class="text-xs text-muted">Dividing timestamp by 1000 converts milliseconds to seconds for standard SQL date functions.</p>
+        </div>
+        <div class="card fill-width">
+          <p class="text-xs font-bold text-accent mb-2">Latency Target</p>
+          <p class="text-xs text-muted">Even with complex bucketing, Pinot targets <span class="text-success">&lt; 150ms</span> for this query on billions of rows.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SLIDE 11: Real-World Business Impact -->
+  <section class="slide p-8 col">
+    <div class="badge">The "Why"</div>
+    <h2>Business Impact: Beyond the Tech</h2>
+    <div class="grid-2 mt-4 fill-height">
+      <div class="card">
+        <h4 class="text-sm text-accent mb-3">E-Commerce Personalization</h4>
+        <p class="text-xs mb-4">A user clicks "Winter Jackets". You have <strong>100ms</strong> to recommend a scarf before they scroll away.</p>
+        <p class="text-xs text-success font-bold">ROI: 10x higher engagement vs. stale recommendations.</p>
+      </div>
+      <div class="card">
+        <h4 class="text-sm text-accent mb-3">Fraud Detection</h4>
+        <p class="text-xs mb-4">Detect anomalous transaction patterns in <strong>milliseconds</strong>, not hours.</p>
+        <p class="text-xs text-success font-bold">ROI: Prevent losses before the transaction settles.</p>
+      </div>
+      <div class="card">
+        <h4 class="text-sm text-accent mb-3">Live Ops Dashboards</h4>
+        <p class="text-xs mb-4">Operations teams see traffic spikes or error rate climbs in <strong>2-5 seconds</strong>.</p>
+        <p class="text-xs text-success font-bold">ROI: Instant scaling and rapid incident response.</p>
+      </div>
+      <div class="card">
+        <h4 class="text-sm text-accent mb-3">External-Facing Analytics</h4>
+        <p class="text-xs mb-4">Power "Who viewed your profile" or "Your activity" for <strong>millions of concurrent users</strong>.</p>
+        <p class="text-xs text-success font-bold">ROI: Premium user experience at massive scale.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- SLIDE 12: Comparison & Benchmarks -->
+  <section class="slide p-8 col">
+    <div class="badge">Positioning</div>
+    <h2>Where Pinot Fits</h2>
+    <div class="mt-4">
+      <table style="width: 100%; border-collapse: collapse; font-size: 0.85rem;">
+        <thead>
+          <tr style="border-bottom: 2px solid var(--color-bg-muted);">
+            <th style="text-align: left; padding: 0.75rem;">Feature</th>
+            <th style="text-align: center; padding: 0.75rem;">Traditional DB (MySQL)</th>
+            <th style="text-align: center; padding: 0.75rem;">Data Warehouse (Snowflake)</th>
+            <th style="text-align: center; padding: 0.75rem; color: var(--color-primary);">Apache Pinot</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr style="border-bottom: 1px solid var(--color-bg-muted);">
+            <td style="padding: 0.75rem; font-weight: 600;">Data Freshness</td>
+            <td style="text-align: center;">Seconds</td>
+            <td style="text-align: center;">Minutes / Hours</td>
+            <td style="text-align: center; color: var(--color-success); font-weight: bold;">Seconds</td>
+          </tr>
+          <tr style="border-bottom: 1px solid var(--color-bg-muted);">
+            <td style="padding: 0.75rem; font-weight: 600;">Query Latency</td>
+            <td style="text-align: center;">1s - 10s</td>
+            <td style="text-align: center;">2s - 30s</td>
+            <td style="text-align: center; color: var(--color-success); font-weight: bold;">&lt; 200ms</td>
+          </tr>
+          <tr style="border-bottom: 1px solid var(--color-bg-muted);">
+            <td style="padding: 0.75rem; font-weight: 600;">Concurrent Users</td>
+            <td style="text-align: center;">Hundreds</td>
+            <td style="text-align: center;">Thousands</td>
+            <td style="text-align: center; color: var(--color-success); font-weight: bold;">100k+</td>
+          </tr>
+          <tr>
+            <td style="padding: 0.75rem; font-weight: 600;">Storage Cost</td>
+            <td style="text-align: center;">High</td>
+            <td style="text-align: center;">Medium</td>
+            <td style="text-align: center; color: var(--color-success); font-weight: bold;">Low (Columnar)</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="text-xs text-muted mt-4 italic text-center">Pinot is not a replacement for MySQL; it is a replacement for BI tools in high-concurrency, low-latency scenarios.</p>
+  </section>
+
+  <!-- SLIDE 13: Advanced Production Features -->
+  <section class="slide p-8 col">
+    <div class="badge">Next Steps</div>
+    <h2>Going Production</h2>
+    <div class="grid-2 mt-4">
+      <div class="col gap-md">
+        <div class="card">
+          <h4 class="text-sm text-accent mb-2">Deduplication</h4>
+          <p class="text-xs text-muted">Pinot can handle "Exactly-Once" semantics by deduplicating incoming Kafka events based on primary keys.</p>
+        </div>
+        <div class="card">
+          <h4 class="text-sm text-accent mb-2">Upserts</h4>
+          <p class="text-xs text-muted">Need to update a record? Pinot supports real-time upserts to maintain the latest state of an entity.</p>
+        </div>
+      </div>
+      <div class="col gap-md">
+        <div class="card">
+          <h4 class="text-sm text-accent mb-2">Multi-Tenancy</h4>
+          <p class="text-xs text-muted">Isolate workloads by assigning tables to specific server and broker groups (Tenants).</p>
+        </div>
+        <div class="card">
+          <h4 class="text-sm text-accent mb-2">Cluster Topology</h4>
+          <p class="text-xs text-muted">Move from single-node to a High Availability (HA) setup with 3+ nodes per component.</p>
+        </div>
+      </div>
+    </div>
+    <div class="mt-4 p-4 center" style="background: rgba(56, 189, 248, 0.1); border-radius: 8px;">
+       <p class="text-sm text-accent font-bold">Monitor everything with Prometheus + Grafana</p>
+    </div>
+  </section>
+
+  <!-- SLIDE 14: Key Takeaways -->
+  <section class="slide p-8 col">
+    <div class="badge">Summary</div>
+    <h2>Key Takeaways</h2>
+    <div class="fill-height mt-4">
+      <ul class="text-lg">
+        <li><strong>Architecture Matters:</strong> Columnar storage + Distributed design is the only way to hit &lt;100ms on petabytes.</li>
+        <li><strong>Real-Time is the Future:</strong> 5-minute-old data is no longer competitive for modern enterprises.</li>
+        <li><strong>Seamless Hybrid:</strong> Query real-time streams and historical batch data through a single SQL interface.</li>
+        <li><strong>Proven Scale:</strong> Transition from your local POC to petabyte scale by simply adding nodes.</li>
+      </ul>
+    </div>
+    <div class="highlight-box mt-8" style="border-color: var(--color-success);">
+      <p class="text-success font-bold">"Data is only as valuable as the speed at which you can act on it."</p>
+    </div>
+  </section>
+
+  <!-- SLIDE 15: Conclusion & Q&A -->
+  <section class="slide p-12 col center" style="background: radial-gradient(circle at center, #1e293b 0%, #020617 100%);">
+    <h1 class="text-gradient mb-2">Thank You!</h1>
+    <p class="text-xl text-muted mb-8">Questions? Let's dive into the details.</p>
+    <div class="row gap-lg">
+      <div class="card col center" style="width: 200px;">
+        <p class="text-xs text-muted mb-2">Documentation</p>
+        <p class="text-sm font-bold">pinot.apache.org</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- PROGRESS BAR -->
+  <div class="progress-container">
+    <div class="progress-bar"></div>
+  </div>
+
+  <script>
+    let currentSlide = 0;
+    const slides = document.querySelectorAll('.slide');
+    const progressBar = document.querySelector('.progress-bar');
+
+    function showSlide(index) {
+      slides.forEach((slide, i) => {
+        if (i === index) {
+          slide.classList.add('active');
+        } else {
+          slide.classList.remove('active');
+        }
+      });
+      updateProgress();
+    }
+
+    function updateProgress() {
+      const progress = ((currentSlide + 1) / slides.length) * 100;
+      progressBar.style.width = `${progress}%`;
+    }
+
+    // Initialize
+    window.onload = () => {
+      showSlide(currentSlide);
+    };
+
+    // Click Navigation: Right half = Next, Left half = Previous
+    document.addEventListener('click', (e) => {
+      const halfWidth = window.innerWidth / 2;
+      if (e.clientX > halfWidth) {
+        if (currentSlide < slides.length - 1) {
+          currentSlide++;
+          showSlide(currentSlide);
+        }
+      } else {
+        if (currentSlide > 0) {
+          currentSlide--;
+          showSlide(currentSlide);
+        }
+      }
+    });
+
+    // Keyboard Navigation: ArrowRight/ArrowLeft
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'Enter') {
+        if (currentSlide < slides.length - 1) {
+          currentSlide++;
+          showSlide(currentSlide);
+        }
+      } else if (e.key === 'ArrowLeft') {
+        if (currentSlide > 0) {
+          currentSlide--;
+          showSlide(currentSlide);
+        }
+      }
+    });
+  </script>
+
+</body>
+</html>

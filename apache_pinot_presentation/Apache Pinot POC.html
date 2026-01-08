@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Apache Pinot: Real-Time Analytics at Scale</title>
+  <style>
+    /* Theme Variables */
+    :root {
+      --font-family-display: Arial, sans-serif;
+      --font-weight-display: 600;
+      --font-family-content: Arial, sans-serif;
+      --font-weight-content: 400;
+      --font-size-content: 16px;
+      --line-height-content: 1.4;
+    }
+
+    /* DARK THEME (Professional) */
+    body.theme-dark {
+      --color-bg-base: #0f172a;
+      --color-bg-elevated: #020617;
+      --color-bg-surface: #1e293b;
+      --color-bg-muted: #334155;
+      --color-text-primary: #f1f5f9;
+      --color-text-secondary: #cbd5e1;
+      --color-text-muted: #94a3b8;
+      --color-text-accent: #38bdf8;
+      --color-primary: #38bdf8;
+      --color-primary-foreground: #0f172a;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: var(--font-family-content);
+      font-weight: var(--font-weight-content);
+      font-size: var(--font-size-content);
+      line-height: var(--line-height-content);
+      overflow-x: hidden;
+    }
+
+    .slide {
+      width: 960px;
+      height: 540px;
+      margin: 0 auto 20px;
+      display: flex;
+      flex-shrink: 0;
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* Layout Utilities */
+    .row { flex-direction: row; }
+    .col { flex-direction: column; }
+    .center {
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+    }
+    .space-between { justify-content: space-between; }
+    .items-center { align-items: center; }
+    .items-start { align-items: flex-start; }
+    .items-end { align-items: flex-end; }
+    .fill-width { flex: 1; }
+    .fill-height { flex: 1; display: flex; flex-direction: column; }
+
+    /* Spacing */
+    .gap-sm { gap: 0.5rem; }
+    .gap-md { gap: 1rem; }
+    .gap-lg { gap: 1.5rem; }
+    .gap-xl { gap: 2rem; }
+    .gap-2xl { gap: 3rem; }
+
+    .p-4 { padding: 1rem; }
+    .p-6 { padding: 1.5rem; }
+    .p-8 { padding: 2rem; }
+    .p-12 { padding: 3rem; }
+    .p-16 { padding: 4rem; }
+
+    .mb-2 { margin-bottom: 0.5rem; }
+    .mb-4 { margin-bottom: 1rem; }
+    .mb-6 { margin-bottom: 1.5rem; }
+    .mb-8 { margin-bottom: 2rem; }
+    .mb-12 { margin-bottom: 3rem; }
+
+    .mt-2 { margin-top: 0.5rem; }
+    .mt-4 { margin-top: 1rem; }
+    .mt-6 { margin-top: 1.5rem; }
+    .mt-8 { margin-top: 2rem; }
+    .mt-12 { margin-top: 3rem; }
+
+    /* Typography */
+    h1, h2, h3, h4, h5, h6 {
+      font-family: var(--font-family-display);
+      font-weight: var(--font-weight-display);
+      line-height: 1.2;
+      margin: 0;
+    }
+
+    h1 { font-size: 3rem; }
+    h2 { font-size: 2.25rem; }
+    h3 { font-size: 1.75rem; }
+    h4 { font-size: 1.5rem; }
+    h5 { font-size: 1.25rem; }
+    h6 { font-size: 1rem; }
+
+    .text-6xl { font-size: 3.75rem; }
+    .text-5xl { font-size: 3rem; }
+    .text-4xl { font-size: 2.25rem; }
+    .text-3xl { font-size: 1.875rem; }
+    .text-2xl { font-size: 1.5rem; }
+    .text-xl { font-size: 1.25rem; }
+    .text-lg { font-size: 1.125rem; }
+    .text-base { font-size: 1rem; }
+    .text-sm { font-size: 0.875rem; }
+
+    .font-bold { font-weight: 700; }
+    .font-semibold { font-weight: 600; }
+    .font-medium { font-weight: 500; }
+    .font-normal { font-weight: 400; }
+
+    .text-center { text-align: center; }
+    .text-left { text-align: left; }
+
+    /* Lists */
+    ul, ol {
+      margin-left: 2rem;
+      line-height: 1.8;
+    }
+
+    ul li { list-style: disc; }
+    ol li { list-style: decimal; }
+
+    li { margin-bottom: 0.75rem; }
+
+    /* Card Styles */
+    .card-rect {
+      padding: 2rem;
+      box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+    }
+
+    .section-divider {
+      height: 3px;
+      width: 80px;
+      margin: 0.5rem auto;
+    }
+  </style>
+</head>
+<body class="theme-dark">
+
+  <!-- SLIDE 1: Title Slide -->
+  <section class="slide p-16 col center" style="background-color: #020617; color: #f1f5f9;">
+    <h1 class="text-6xl mb-4" style="color: #38bdf8;">Apache Pinot</h1>
+    <p class="text-3xl mb-2" style="color: #cbd5e1;">Real-Time Analytics at Scale</p>
+    <p class="text-xl" style="color: #94a3b8;">From POC to Production</p>
+    <div class="section-divider" style="background-color: #38bdf8; margin-top: 2rem;"></div>
+    <p class="text-sm mt-12" style="color: #94a3b8;">A Deep Dive into Streaming Analytics with Kafka</p>
+  </section>
+
+  <!-- SLIDE 2: The Problem -->
+  <section class="slide p-16 col" style="background-color: #0f172a; color: #f1f5f9;">
+    <h2 class="mb-8" style="color: #38bdf8;">The Problem: Stale Data</h2>
+    <div class="fill-height">
+      <ul class="text-lg" style="color: #cbd5e1;">
+        <li><span style="color: #38bdf8;">5-minute-old data</span> = Lost business insights</li>
+        <li>Can't optimize <span style="color: #38bdf8;">in real-time</span></li>
+        <li>Miss fraud detection windows (decisions happen too late)</li>
+        <li>Dashboards don't reflect current reality</li>
+      </ul>
+      <p class="text-lg mt-8" style="color: #94a3b8;">
+        Traditional databases optimized for writes, not fast analytics.
+      </p>
+    </div>
+  </section>
+
+  <!-- SLIDE 3: Why Traditional DBs Fail -->
+  <section class="slide p-16 col" style="background-color: #0f172a; color: #f1f5f9;">
+    <h2 class="mb-6" style="color: #38bdf8;">Architecture Mismatch</h2>
+    <div class="fill-height">
+      <p class="text-lg mb-6" style="color: #cbd5e1;">
+        MySQL, PostgreSQL, Redshift weren't built for real-time analytics.
+      </p>
+      <ul class="text-lg" style="color: #cbd5e1;">
+        <li><span style="color: #38bdf8;">Row-based storage</span> – reads entire rows even for single columns</li>
+        <li><span style="color: #38bdf8;">Transactional focus</span> – optimized for INSERT/UPDATE/DELETE</li>
+        <li><span style="color: #38bdf8;">Limited parallelism</span> – queries compete for resources</li>
+        <li><span style="color: #38bdf8;">Slow analytical queries</span> – seconds to minutes on large data</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- SLIDE 4: Introducing Pinot -->
+  <section class="slide p-16 col center" style="background-color: #020617; color: #f1f5f9;">
+    <h2 class="mb-8" style="color: #38bdf8;">The Solution: Apache Pinot</h2>
+    <div class="gap-lg" style="display: flex; flex-direction: column; align-items: center;">
+      <p class="text-2xl" style="color: #cbd5e1;">Sub-100ms queries on</p>
+      <p class="text-5xl" style="color: #38bdf8;">Petabyte-Scale Data</p>
+      <div class="section-divider" style="background-color: #38bdf8; margin-top: 1rem;"></div>
+      <p class="text-lg mt-6" style="color: #94a3b8;">Built for real-time analytics. Purpose-built.</p>
+    </div>
+  </section>
+
+  <!-- SLIDE 5: Three Pillars of Pinot -->
+  <section class="slide p-16 col" style="background-color: #0f172a; color: #f1f5f9;">
+    <h2 class="mb-6" style="color: #38bdf8;">Three Pillars of Pinot</h2>
+    <div class="fill-height row gap-lg">
+      <div class="fill-width" style="background-color: #1e293b; color: #f1f5f9; padding: 1.5rem; box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);">
+        <h4 class="mb-3" style="color: #38bdf8;">1. Columnar Storage</h4>
+        <p style="color: #cbd5e1;">Store by column, not row. Read only what you need. 90% less disk I/O.</p>
+      </div>
+      <div class="fill-width" style="background-color: #1e293b; color: #f1f5f9; padding: 1.5rem; box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);">
+        <h4 class="mb-3" style="color: #38bdf8;">2. Distributed</h4>
+        <p style="color: #cbd5e1;">Scale horizontally. Add servers = more capacity. Query all in parallel.</p>
+      </div>
+      <div class="fill-width" style="background-color: #1e293b; color: #f1f5f9; padding: 1.5rem; box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);">
+        <h4 class="mb-3" style="color: #38bdf8;">3. Advanced Indexing</h4>
+        <p style="color: #cbd5e1;">Inverted, sorted, range indexes. Know what to read before reading.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- SLIDE 6: Your Architecture -->
+  <section class="slide p-16 col" style="background-color: #0f172a; color: #f1f5f9;">
+    <h2 class="mb-6" style="color: #38bdf8;">Your POC Architecture</h2>
+    <div class="fill-height">
+      <ul class="text-lg" style="color: #cbd5e1;">
+        <li><span style="color: #38bdf8;">Python Producer</span> – Generates user events (clicks, views, purchases)</li>
+        <li><span style="color: #38bdf8;">Kafka</span> – Transport layer (reliable, ordered, durable)</li>
+        <li><span style="color: #38bdf8;">Pinot Cluster</span> – 4 components:</li>
+      </ul>
+      <ul class="text-lg ml-4" style="color: #cbd5e1; margin-top: 0.5rem;">
+        <li>Zookeeper (coordinator)</li>
+        <li>Controller (cluster brain)</li>
+        <li>Broker (query gateway)</li>
+        <li>Server (data + indexes)</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- SLIDE 7: Data Flow -->
+  <section class="slide p-16 col center" style="background-color: #0f172a; color: #f1f5f9;">
+    <h2 class="mb-8" style="color: #38bdf8;">Real-Time Data Flow</h2>
+    <div style="font-size: 1.5rem; color: #cbd5e1;">
+      <p class="mb-4">Python Events <span style="color: #38bdf8;">→</span> Kafka</p>
+      <p class="mb-4"><span style="color: #38bdf8;">↓</span></p>
+      <p class="mb-4">Pinot Server Consumes <span style="color: #38bdf8;">→</span> Batches into Segments</p>
+      <p class="mb-4"><span style="color: #38bdf8;">↓</span></p>
+      <p class="mb-4">Build Indexes (Inverted, Sorted, Range)</p>
+      <p class="mb-4"><span style="color: #38bdf8;">↓</span></p>
+      <p style="font-size: 1.25rem;"><span style="color: #38bdf8; font-weight: bold;">Query in &lt;100ms</span></p>
+    </div>
+    <p class="text-sm mt-8" style="color: #94a3b8;">Total time: Event generation to queryable: ~2-3 seconds</p>
+  </section>
+
+  <!-- SLIDE 8: Schema Design -->
+  <section class="slide p-16 col" style="background-color: #0f172a; color: #f1f5f9;">
+    <h2 class="mb-6" style="color: #38bdf8;">Schema Design (Your Setup)</h2>
+    <div class="fill-height">
+      <p class="text-lg mb-4" style="color: #cbd5e1;">
+        <span style="color: #38bdf8;">Dimension Fields:</span> userId, eventType (filter & group by)
+      </p>
+      <p class="text-lg mb-4" style="color: #cbd5e1;">
+        <span style="color: #38bdf8;">Metric Fields:</span> value (SUM, AVG, COUNT, MAX)
+      </p>
+      <p class="text-lg mb-4" style="color: #cbd5e1;">
+        <span style="color: #38bdf8;">DateTime Fields:</span> timestamp (time-based pruning)
+      </p>
+      <p class="text-sm mt-6" style="color: #94a3b8;">
+        ✓ Simple, flat schema = Pinot's sweet spot<br>
+        ✗ Complex joins = Move upstream, denormalize data
+      </p>
+    </div>
+  </section>
+
+  <!-- SLIDE 9: Retention & Segments -->
+  <section class="slide p-16 col" style="background-color: #0f172a; color: #f1f5f9;">
+    <h2 class="mb-6" style="color: #38bdf8;">Retention & Segments</h2>
+    <div class="fill-height">
+      <ul class="text-lg" style="color: #cbd5e1;">
+        <li><span style="color: #38bdf8;">7-day retention</span> – Keep recent data hot in REALTIME table</li>
+        <li><span style="color: #38bdf8;">Hourly segments</span> – 7 days × 24 hours = 168 segments</li>
+        <li><span style="color: #38bdf8;">Parallel querying</span> – Query all 168 simultaneously</li>
+        <li><span style="color: #38bdf8;">Auto-cleanup</span> – Data older than 7 days is deleted</li>
+        <li><span style="color: #38bdf8;">+ Batch layer</span> – Optional: historical data from S3/Hadoop</li>
+      </ul>
+      <p class="text-sm mt-6" style="color: #94a3b8;">
+        Production: Hybrid REALTIME (7 days) + BATCH (2+ years) tables
+      </p>
+    </div>
+  </section>
+
+  <!-- SLIDE 10: Query Examples (Part 1) -->
+  <section class="slide p-16 col" style="background-color: #0f172a; color: #f1f5f9;">
+    <h2 class="mb-4" style="color: #38bdf8;">Query Example 1: Events by Type</h2>
+    <p class="text-sm mb-4" style="color: #cbd5e1; background-color: #1e293b; padding: 1rem; border-left: 3px solid #38bdf8;">
+      SELECT eventType, COUNT(*) FROM events WHERE timestamp > now() - 3600000 GROUP BY eventType ORDER BY COUNT(*) DESC
+    </p>
+    <ul class="text-lg" style="color: #cbd5e1;">
+      <li>Timestamp index → only reads last hour segments</li>
+      <li>Columnar storage → reads only 2 columns (eventType, value)</li>
+      <li><span style="color: #38bdf8;">Result: &lt;50ms latency</span></li>
+    </ul>
+  </section>
+
+  <!-- SLIDE 11: Query Examples (Part 2) -->
+  <section class="slide p-16 col" style="background-color: #0f172a; color: #f1f5f9;">
+    <h2 class="mb-4" style="color: #38bdf8;">Query Example 2: User Engagement</h2>
+    <p class="text-sm mb-4" style="color: #cbd5e1; background-color: #1e293b; padding: 1rem; border-left: 3px solid #38bdf8;">
+      SELECT userId, AVG(value), COUNT(*) FROM events WHERE eventType = 'click' GROUP BY userId HAVING COUNT(*) > 10
+    </p>
+    <ul class="text-lg" style="color: #cbd5e1;">
+      <li>Inverted index on eventType → skip non-click rows</li>
+      <li>Columnar → reads userId, value columns only</li>
+      <li><span style="color: #38bdf8;">Scales to 1B+ events</span></li>
+    </ul>
+  </section>
+
+  <!-- SLIDE 12: Use Cases & ROI -->
+  <section class="slide p-16 col" style="background-color: #0f172a; color: #f1f5f9;">
+    <h2 class="mb-6" style="color: #38bdf8;">Real-World Use Cases</h2>
+    <div class="fill-height">
+      <p class="text-lg mb-3" style="color: #cbd5e1;">
+        <span style="color: #38bdf8;">E-Commerce:</span> Real-time product recommendations (10x engagement)
+      </p>
+      <p class="text-lg mb-3" style="color: #cbd5e1;">
+        <span style="color: #38bdf8;">Finance:</span> Fraud detection in milliseconds (prevent before transaction settles)
+      </p>
+      <p class="text-lg mb-3" style="color: #cbd5e1;">
+        <span style="color: #38bdf8;">Operations:</span> Live dashboards with 2-5 second refresh (instant scaling)
+      </p>
+      <p class="text-lg" style="color: #cbd5e1;">
+        <span style="color: #38bdf8;">LinkedIn/Uber/Walmart:</span> Petabyte-scale real-time analytics
+      </p>
+    </div>
+  </section>
+
+  <!-- SLIDE 13: Performance Comparison -->
+  <section class="slide p-16 col" style="background-color: #0f172a; color: #f1f5f9;">
+    <h2 class="mb-6" style="color: #38bdf8;">Pinot vs Traditional Systems</h2>
+    <div class="fill-height">
+      <div class="row gap-md mb-4">
+        <div class="fill-width" style="border-bottom: 2px solid #38bdf8; padding-bottom: 0.5rem;">
+          <p style="color: #cbd5e1;"><span style="color: #38bdf8; font-weight: bold;">Query Latency</span></p>
+          <p style="color: #38bdf8; font-size: 1.5rem; font-weight: bold;">100ms</p>
+          <p style="color: #94a3b8; font-size: 0.9rem;">vs MySQL 1s, Snowflake 5s</p>
+        </div>
+        <div class="fill-width" style="border-bottom: 2px solid #38bdf8; padding-bottom: 0.5rem;">
+          <p style="color: #cbd5e1;"><span style="color: #38bdf8; font-weight: bold;">Queries/Second</span></p>
+          <p style="color: #38bdf8; font-size: 1.5rem; font-weight: bold;">100k+</p>
+          <p style="color: #94a3b8; font-size: 0.9rem;">vs MySQL 500, Snowflake 2k</p>
+        </div>
+      </div>
+      <div class="row gap-md">
+        <div class="fill-width" style="border-bottom: 2px solid #38bdf8; padding-bottom: 0.5rem;">
+          <p style="color: #cbd5e1;"><span style="color: #38bdf8; font-weight: bold;">Storage (Compressed)</span></p>
+          <p style="color: #38bdf8; font-size: 1.5rem; font-weight: bold;">15%</p>
+          <p style="color: #94a3b8; font-size: 0.9rem;">85% savings via columnar</p>
+        </div>
+        <div class="fill-width" style="border-bottom: 2px solid #38bdf8; padding-bottom: 0.5rem;">
+          <p style="color: #cbd5e1;"><span style="color: #38bdf8; font-weight: bold;">Data Freshness</span></p>
+          <p style="color: #38bdf8; font-size: 1.5rem; font-weight: bold;">2-3s</p>
+          <p style="color: #94a3b8; font-size: 0.9rem;">vs 5-30 mins with warehouses</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SLIDE 14: Challenges & Trade-offs -->
+  <section class="slide p-16 col" style="background-color: #0f172a; color: #f1f5f9;">
+    <h2 class="mb-6" style="color: #38bdf8;">Trade-offs to Know</h2>
+    <div class="fill-height">
+      <ul class="text-lg" style="color: #cbd5e1;">
+        <li><span style="color: #38bdf8;">No Complex Joins</span> – Denormalize upstream (Kafka enrichment)</li>
+        <li><span style="color: #38bdf8;">Fixed Schemas</span> – Add columns easily, modify columns carefully</li>
+        <li><span style="color: #38bdf8;">Immutable Data</span> – No UPDATE/DELETE. Append-only design</li>
+        <li><span style="color: #38bdf8;">Operational Complexity</span> – More components than single-DB setup</li>
+      </ul>
+      <p class="text-sm mt-6" style="color: #94a3b8;">
+        These are design trade-offs for speed. Completely acceptable for analytics workloads.
+      </p>
+    </div>
+  </section>
+
+  <!-- SLIDE 15: Production Deployment -->
+  <section class="slide p-16 col" style="background-color: #0f172a; color: #f1f5f9;">
+    <h2 class="mb-6" style="color: #38bdf8;">From POC to Production</h2>
+    <div class="fill-height">
+      <p class="text-lg mb-4" style="color: #cbd5e1;">
+        <span style="color: #38bdf8;">Your POC:</span> 1 of each component (learning setup)
+      </p>
+      <p class="text-lg mb-4" style="color: #cbd5e1;">
+        <span style="color: #38bdf8;">Production:</span> 3-5 of each for high availability
+      </p>
+      <ul class="text-lg" style="color: #cbd5e1;">
+        <li>Add <span style="color: #38bdf8;">monitoring</span> (segment lag, query latency, disk usage)</li>
+        <li>Implement <span style="color: #38bdf8;">segment merging</span> (compress old hourly segments daily)</li>
+        <li>Enable <span style="color: #38bdf8;">deduplication</span> (handle Kafka retries)</li>
+        <li>Add <span style="color: #38bdf8;">historical layer</span> (BATCH table for data >7 days)</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- SLIDE 16: Live Demo Overview -->
+  <section class="slide p-16 col center" style="background-color: #020617; color: #f1f5f9;">
+    <h2 class="mb-8" style="color: #38bdf8;">Live Demo: What You'll See</h2>
+    <div style="text-align: left;">
+      <p class="text-lg mb-3" style="color: #cbd5e1;"><span style="color: #38bdf8;">1.</span> Docker Compose up (all 5 components)</p>
+      <p class="text-lg mb-3" style="color: #cbd5e1;"><span style="color: #38bdf8;">2.</span> Upload schema and table config</p>
+      <p class="text-lg mb-3" style="color: #cbd5e1;"><span style="color: #38bdf8;">3.</span> Run Python producer (events flow to Kafka)</p>
+      <p class="text-lg mb-3" style="color: #cbd5e1;"><span style="color: #38bdf8;">4.</span> Pinot consumes and creates segments</p>
+      <p class="text-lg" style="color: #cbd5e1;"><span style="color: #38bdf8;">5.</span> Run SQL queries (all &lt;100ms) on live data</p>
+    </div>
+    <div class="section-divider" style="background-color: #38bdf8; margin-top: 2rem;"></div>
+    <p class="text-lg mt-6" style="color: #38bdf8; font-weight: bold;">Real-time analytics in action</p>
+  </section>
+
+  <!-- SLIDE 17: Key Takeaways -->
+  <section class="slide p-16 col" style="background-color: #0f172a; color: #f1f5f9;">
+    <h2 class="mb-6" style="color: #38bdf8;">Key Takeaways</h2>
+    <div class="fill-height">
+      <ul class="text-lg" style="color: #cbd5e1;">
+        <li><span style="color: #38bdf8;">Columnar + Distributed + Indexed</span> = Sub-100ms on petabytes</li>
+        <li><span style="color: #38bdf8;">Kafka + Pinot</span> = Event streaming meets real-time analytics</li>
+        <li><span style="color: #38bdf8;">Trade flexibility for speed</span> (worth it for analytics)</li>
+        <li><span style="color: #38bdf8;">Proven at scale:</span> LinkedIn, Uber, Walmart process petabytes</li>
+        <li><span style="color: #38bdf8;">Your POC is production-like</span> (scale = add more nodes)</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- SLIDE 18: Closing & Q&A -->
+  <section class="slide p-16 col center" style="background-color: #020617; color: #f1f5f9;">
+    <h2 class="text-5xl mb-6" style="color: #38bdf8;">Thank You!</h2>
+    <p class="text-2xl mb-12" style="color: #cbd5e1;">Real-Time Analytics Changes Everything</p>
+    <div class="section-divider" style="background-color: #38bdf8;"></div>
+    <p class="text-xl mt-8" style="color: #94a3b8;">Questions?</p>
+    <p class="text-sm mt-4" style="color: #94a3b8;">GitHub: apache/pinot</p>
+    <p class="text-sm" style="color: #94a3b8;">Docs: pinot.apache.org</p>
+  </section>
+
+</body>
+</html>

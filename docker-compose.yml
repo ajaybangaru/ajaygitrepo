@@ -1,0 +1,84 @@
+version: "3.7"
+services:
+  zookeeper:
+    image: zookeeper:3.6.3
+    container_name: pinot-zookeeper
+    ports:
+      - "2181:2181"
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    networks:
+      - pinot-network
+
+  kafka:
+    image: confluentinc/cp-kafka:7.4.0
+    container_name: kafka
+    depends_on:
+      - zookeeper
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,PLAINTEXT_HOST://localhost:29092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092,PLAINTEXT_HOST://0.0.0.0:29092
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+    ports:
+      - "29092:29092"
+      - "9092:9092"
+    networks:
+      - pinot-network
+
+  pinot-controller:
+    image: apachepinot/pinot:latest
+    container_name: pinot-controller
+    command: "StartController -zkAddress zookeeper:2181 -controllerPort 9000"
+    depends_on:
+      - zookeeper
+    ports:
+      - "9000:9000"
+    volumes:
+      - ./config:/config
+    networks:
+      - pinot-network
+
+  pinot-broker:
+    image: apachepinot/pinot:latest
+    container_name: pinot-broker
+    command: "StartBroker -zkAddress zookeeper:2181 -brokerPort 8099"
+    depends_on:
+      - pinot-controller
+    ports:
+      - "8099:8099"
+    networks:
+      - pinot-network
+
+  pinot-server:
+    image: apachepinot/pinot:latest
+    container_name: pinot-server
+    command: "StartServer -zkAddress zookeeper:2181 -serverPort 8098"
+    depends_on:
+      - pinot-broker
+    ports:
+      - "8098:8098"
+    networks:
+      - pinot-network
+
+  nginx:
+    image: nginx:latest
+    container_name: pinot-nginx
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - pinot-broker
+    networks:
+      - pinot-network
+    restart: unless-stopped
+
+networks:
+  pinot-network:
+    driver: bridge
