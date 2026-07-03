@@ -2,20 +2,22 @@ pipeline {
     agent any
 
     stages {
+
         stage('Checkout') {
             steps {
-                checkout scm
+                echo 'Repository checked out successfully'
             }
         }
 
-        stage('Start Pinot') {
+        stage('Compile') {
             steps {
-                sh 'whoami'
-                sh 'docker --version'
-                sh 'docker compose version'
-                sh 'docker compose down || true'
-                sh 'docker compose up -d'
-                sh 'docker ps'
+                bat 'javac Hello.java'
+            }
+        }
+
+        stage('Run') {
+            steps {
+                bat 'java Hello'
             }
         }
     }
